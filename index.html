@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Karte biblischer Orte</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Modernes Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #map-container {
+            width: 95%;
+            max-width: 1000px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        #map-container:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 12px;
+        }
+        #info-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            width: 95%;
+            max-width: 1000px;
+        }
+        .info-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 300px;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        .info-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #1e293b;
+            transition: color 0.3s ease;
+        }
+        .info-card h2:hover {
+             color: #4299e1;
+         }
+        .info-card p {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        .info-card ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 0;
+            font-size: 1rem;
+            color: #718096;
+        }
+        .info-card li {
+            margin-bottom: 10px;
+        }
+        .info-card strong {
+            color: #1e293b;
+        }
+        .bible-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #4299e1;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+            font-size: 1.1rem;
+        }
+        .bible-link:hover {
+            color: #2b6cb0;
+        }
+
+        /* Dropdown Styling */
+        #location-select {
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #cbd5e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            width: 95%;
+            max-width: 400px;
+            align-self: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            background-color: white;
+        }
+        #location-select:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+        #location-select option {
+            font-size: 1.1rem;
+            color: #4a5568;
+        }
+        #location-select option:hover{
+           background-color: #edf2f7;
+        }
+
+         /* Responsive Anpassungen für kleinere Bildschirme */
+        @media (max-width: 768px) {
+            #map-container, #info-container {
+                width: 100%;
+            }
+            .info-card {
+                width: 95%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            #location-select {
+                width: 95%;
+            }
+        }
+        .header-section{
+            text-align: center;
+            padding: 20px;
+            background-color: #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: 95%;
+            max-width: 1000px;
+        }
+        .header-section h1{
+            color: #1a202c;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+
+        }
+        .header-section p{
+            color: #718096;
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+        #filter-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            width: 95%;
+            max-width: 1000px;
+        }
+        #jesus-filter {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: 2px solid #cbd5e0;
+            border-radius: 12px;
+            background-color: white;
+            color: #4a5568;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #jesus-filter:hover {
+            background-color: #4299e1;
+            color: white;
+            border-color: #4299e1;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #jesus-filter.active {
+            background-color: #4299e1;
+            color: white;
+            border-color: #4299e1;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+        .childhood-marker { background-color: blue; }
+        .ministry-marker { background-color: green;}
+        .passion-marker { background-color: red;}
+        .default-marker { background-color: gray; }
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .location-marker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid black;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header-section">
+            <h1>Entdecken Sie biblische Orte</h1>
+            <p>Willkommen zu unserer interaktiven Karte, die Sie auf eine Reise zu bedeutenden biblischen Stätten mitnimmt. Wählen Sie einen Ort aus dem Dropdown-Menü oder klicken Sie auf einen Marker auf der Karte, um mehr zu erfahren.</p>
+        </header>
+        <div id="filter-container">
+            <button id="jesus-filter">Orte mit Jesusbezug</button>
+        </div>
+        <select id="location-select">
+            <option value="">Wähle einen Ort</option>
+        </select>
+        <div id="map-container">
+            <div id="map"></div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: blue;"></div>
+                    <span>Kindheit</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: green;"></div>
+                    <span>Wirken</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: red;"></div>
+                    <span>Passion</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: gray;"></div>
+                    <span>Andere</span>
+                </div>
+            </div>
+        </div>
+        <div id="info-container">
+            </div>
+    </div>
+
+    <script>
+        const locations = [
+            {
+                name: "Jerusalem",
+                lat: 31.7683,
+                lon: 35.2137,
+                shortStory: "Eine der ältesten Städte der Welt, heilig für Juden, Christen und Muslime.",
+                summary: "Zentraler Ort für Judentum, Christentum und Islam.  Beinhaltet die Altstadt mit Klagemauer, Grabeskirche und Felsendom.",
+                keyFigures: "David, Salomo, Jesus, Mohammed",
+                period: "Antike bis heute",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 2, verse: 1 },
+                    { book: "Markus", chapter: 11, verse: 15 },
+                    { book: "Lukas", chapter: 2, verse: 22 },
+                    { book: "Johannes", chapter: 2, verse: 13 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'passion'
+            },
+            {
+                name: "Bethlehem",
+                lat: 31.7042,
+                lon: 35.2006,
+                shortStory: "Geburtsort Jesu, ein wichtiger Pilgerort für Christen.",
+                summary: "Geburtsort Jesu. Die Geburtskirche ist ein zentraler Anlaufpunkt für Pilger.",
+                keyFigures: "Jesus, Maria, Josef",
+                period: "Römisches Reich",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 2, verse: 1 },
+                    { book: "Lukas", chapter: 2, verse: 4 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'childhood'
+            },
+            {
+                name: "Nazareth",
+                lat: 32.7017,
+                lon: 35.3078,
+                shortStory: "Die Stadt, in der Jesus aufwuchs.",
+                summary: "Stadt der Verkündigung. Die Verkündigungsbasilika ist ein wichtiger christlicher Wallfahrtsort.",
+                keyFigures: "Jesus, Maria",
+                period: "Römisches Reich",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 2, verse: 23 },
+                    { book: "Lukas", chapter: 1, verse: 26 },
+                    { book: "Lukas", chapter: 4, verse: 16 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'childhood'
+            },
+             {
+                name: "Kapernaum",
+                lat: 32.8803,
+                lon: 35.5753,
+                shortStory: "Eine Stadt am See Genezareth, die im Neuen Testament oft erwähnt wird.",
+                summary: "Zentrum von Jesu Wirken.  Beinhaltet die Überreste einer Synagoge aus dem 1. Jahrhundert.",
+                keyFigures: "Jesus, Petrus",
+                period: "Römisches Reich",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 4, verse: 13 },
+                    { book: "Markus", chapter: 1, verse: 21 },
+                    { book: "Lukas", chapter: 4, verse: 31 },
+                    { book: "Johannes", chapter: 2, verse: 12 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'ministry'
+            },
+            {
+                name: " Jericho",
+                lat: 31.8569,
+                lon: 35.4417,
+                shortStory: "Eine der ältesten durchgehend bewohnten Städte der Welt.",
+                summary: "Eine der ältesten Städte der Welt. Im Alten Testament erwähnt und mit Jesus verbunden.",
+                keyFigures: "Josua, Jesus",
+                period: "Antike bis heute",
+                 bibleReferences: [
+                    { book: "Lukas", chapter: 10, verse: 30 },
+                    { book: "Matthäus", chapter: 20, verse: 29 },
+                    { book: "Markus", chapter: 10, verse: 46 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'ministry'
+            },
+            {
+                name: "Totes Meer",
+                lat: 31.5204,
+                lon: 35.4952,
+                shortStory: "Der tiefste hypersaline See der Welt.",
+                summary: "Bekannt für seinen hohen Salzgehalt.  In der Bibel als Schauplatz mehrerer Ereignisse erwähnt.",
+                keyFigures: "Keine spezifischen biblischen Figuren, aber oft erwähnt",
+                period: "Biblische Zeiten",
+                bibleReferences: [
+                    { book: "Genesis", chapter: 14, verse: 3 },
+                    { book: "2. Könige", chapter: 3, verse: 16 },
+                    { book: "Hesekiel", chapter: 47, verse: 18 }
+                ],
+                jesusRelated: false,
+                jesusLifePhase: null
+            },
+            {
+                name: " Berg Sinai",
+                lat: 28.5222,
+                lon: 33.9756,
+                shortStory: "Der Berg, auf dem Moses die Zehn Gebote empfing.",
+                summary: "Ort der Offenbarung der Zehn Gebote.  Ein wichtiger Wallfahrtsort.",
+                keyFigures: "Moses",
+                period: "Exodus",
+                bibleReferences: [
+                    { book: "2. Mose", chapter: 19, verse: 1 },
+                    { book: "2. Mose", chapter: 20, verse: 1 },
+                    { book: "5. Mose", chapter: 5, verse: 2 }
+                ],
+                 jesusRelated: false,
+                 jesusLifePhase: null
+            },
+            {
+                name: "Fluss Jordan",
+                lat: 32.2272,
+                lon: 35.5061,
+                shortStory: "Ein Fluss von großer religiöser Bedeutung, der im Alten und Neuen Testament erwähnt wird.",
+                summary: "Ort der Taufe Jesu durch Johannes den Täufer.  Grenze zwischen Israel und Jordanien.",
+                keyFigures: "Johannes der Täufer, Jesus",
+                period: "Biblische Zeiten",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 3, verse: 13 },
+                    { book: "Markus", chapter: 1, verse: 9 },
+                    { book: "Johannes", chapter: 1, verse: 28 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'ministry'
+            },
+            {
+                name: " Damaskus",
+                lat: 33.5138,
+                lon: 36.2765,
+                shortStory: "Eine der ältesten kontinuierlich bewohnten Städte der Welt.",
+                summary: "Wichtige Stadt in der Bibel.  Ort der Bekehrung des Paulus.",
+                keyFigures: "Paulus",
+                period: "Antike bis heute",
+                bibleReferences: [
+                    { book: "Apostelgeschichte", chapter: 9, verse: 1 },
+                    { book: "Apostelgeschichte", chapter: 22, verse: 3 },
+                    { book: "Apostelgeschichte", chapter: 26, verse: 12 }
+                ],
+                jesusRelated: false,
+                jesusLifePhase: null
+            },
+            {
+                name: " Babylon",
+                lat: 32.5361,
+                lon: 44.4228,
+                shortStory: "Eine bedeutende Stadt des alten Mesopotamien.",
+                summary: "Einstige Hauptstadt des babylonischen Reiches.  Im Alten Testament oft als Symbol für Macht und Verfall erwähnt.",
+                keyFigures: "Nebukadnezar II",
+                period: "Antike",
+                bibleReferences: [
+                    { book: "Genesis", chapter: 10, verse: 10 },
+                    { book: "2. Könige", chapter: 24, verse: 1 },
+                    { book: "Daniel", chapter: 1, verse: 1 }
+                ],
+                jesusRelated: false,
+                jesusLifePhase: null
+            },
+            {
+                name: "Golgatha",
+                lat: 31.7758,
+                lon: 35.2285,
+                shortStory: "Der Ort der Kreuzigung Jesu.",
+                summary: "Der Ort, an dem Jesus gekreuzigt wurde.",
+                keyFigures: "Jesus",
+                period: "Römisches Reich",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 27, verse: 33 },
+                    { book: "Markus", chapter: 15, verse: 22 },
+                    { book: "Lukas", chapter: 23, verse: 33 },
+                    { book: "Johannes", chapter: 19, verse: 17 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'passion'
+            },
+             {
+                name: "See Genezareth",
+                lat: 32.85,
+                lon: 35.6,
+                shortStory: "Ein Ort zahlreicher Wunder Jesu.",
+                summary: "Ein wichtiger Ort in Jesu Wirken, bekannt für Wunder wie die Stillung des Sturms.",
+                keyFigures: "Jesus, Petrus, Andreas",
+                period: "Römisches Reich",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 4, verse: 18 },
+                    { book: "Markus", chapter: 4, verse: 39 },
+                    { book: "Lukas", chapter: 5, verse: 1 },
+                    { book: "Johannes", chapter: 6, verse: 19 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'ministry'
+            },
+            {
+                name: "Berg der Seligpreisungen",
+                lat: 32.8715,
+                lon: 35.5303,
+                shortStory: "Ort der Bergpredigt Jesu.",
+                summary: "Bekannt für die Bergpredigt, eine zentrale Lehre Jesu.",
+                keyFigures: "Jesus",
+                period: "Römisches Reich",
+                bibleReferences: [
+                    { book: "Matthäus", chapter: 5, verse: 1 },
+                    { book: "Lukas", chapter: 6, verse: 20 }
+                ],
+                jesusRelated: true,
+                jesusLifePhase: 'ministry'
+            }
+        ];
+
+        const map = L.map('map').setView([31.5, 35], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const locationSelect = document.getElementById('location-select');
+        const infoContainer = document.getElementById('info-container');
+        let selectedMarker = null;
+        let jesusFilterActive = false;
+        let filteredLocations = [];
+
+        function clearMarkers() {
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+        }
+
+        function addMarkers(locations) {
+             locations.forEach((location, index) => {
+                let markerClass = '';
+                if (location.jesusLifePhase === 'childhood') {
+                    markerClass = 'childhood-marker';
+                } else if (location.jesusLifePhase === 'ministry') {
+                    markerClass = 'ministry-marker';
+                } else if (location.jesusLifePhase === 'passion') {
+                    markerClass = 'passion-marker';
+                } else if (!location.jesusRelated) {
+                    markerClass = 'default-marker';
+                }
+
+                const marker = L.marker([location.lat, location.lon], {
+                    icon: L.divIcon({
+                        className: `location-marker ${markerClass}`,
+                        iconSize: [30, 30],
+                        html: `<div style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid black; display: flex; justify-content: center; align-items: center;">${index + 1}</div>`
+                    })
+                }).addTo(map)
+                    .bindPopup(`<b>${location.name}</b>`)
+                    .on('click', () => {
+                        displayLocationInfo(index);
+                        locationSelect.value = index;
+                    });
+                marker.locationIndex = index;
+            });
+        }
+
+        function populateDropdown(locations) {
+            locationSelect.innerHTML = '<option value="">Wähle einen Ort</option>';
+            locations.forEach((location, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = location.name;
+                locationSelect.appendChild(option);
+            });
+        }
+
+        function displayLocationInfo(index) {
+            infoContainer.innerHTML = '';
+
+            if (index !== null) {
+                const selectedLocation = locations[index];
+                const infoCard = document.createElement('div');
+                infoCard.className = 'info-card';
+
+                let bibleLinksHTML = selectedLocation.bibleReferences.map(ref => {
+                    const searchTerm = `${ref.book} ${ref.chapter},${ref.verse}`;
+                    const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`;
+                    return `<a href="${googleSearchUrl}" class="bible-link" target="_blank">${searchTerm}</a>`;
+                }).join(' | ');
+
+                infoCard.innerHTML = `
+                    <h2>${selectedLocation.name}</h2>
+                    <p>${selectedLocation.shortStory}</p>
+                    <ul>
+                        <li><strong>Zusammenfassung:</strong> ${selectedLocation.summary}</li>
+                        <li><strong>Schlüsselfiguren:</strong> ${selectedLocation.keyFigures}</li>
+                        <li><strong>Zeitraum:</strong> ${selectedLocation.period}</li>
+                        <li><strong>Bibelstellen:</strong> ${bibleLinksHTML}</li>
+                    </ul>
+                `;
+                infoContainer.appendChild(infoCard);
+                map.setView([selectedLocation.lat, selectedLocation.lon], 10);
+            }
+        }
+
+        locationSelect.addEventListener('change', function() {
+            const selectedIndex = this.value;
+            displayLocationInfo(selectedIndex);
+        });
+
+        const jesusFilterButton = document.getElementById('jesus-filter');
+        jesusFilterButton.addEventListener('click', () => {
+            jesusFilterActive = !jesusFilterActive;
+            jesusFilterButton.classList.toggle('active', jesusFilterActive);
+            infoContainer.innerHTML = '';
+            locationSelect.value = '';
+
+            clearMarkers();
+            filteredLocations = [];
+
+            if (jesusFilterActive) {
+                locations.forEach((location, index) => {
+                    if (location.jesusRelated) {
+                        filteredLocations.push(location);
+                    }
+                });
+            } else {
+                filteredLocations = [...locations];
+            }
+            addMarkers(filteredLocations);
+            populateDropdown(filteredLocations);
+        });
+
+        filteredLocations = [...locations];
+        addMarkers(filteredLocations);
+        populateDropdown(filteredLocations);
+    </script>
+</body>
+</html>
