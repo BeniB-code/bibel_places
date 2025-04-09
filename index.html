@@ -27,23 +27,24 @@
             border-radius: 12px;
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
             transition: box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: row; /* Karte und Infos nebeneinander */
         }
         #map-container:hover {
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         #map {
             height: 500px;
-            width: 100%;
+            flex-grow: 1; /* Karte nimmt verfügbaren Platz ein */
             border-radius: 12px;
         }
         #info-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
+            width: 30%; /* Infos nehmen 30% der Breite ein */
             padding: 20px;
-            width: 95%;
-            max-width: 1000px;
+            box-sizing: border-box;
+            background-color: white;
+            border-radius: 0 12px 12px 0; /* Abgerundete Ecken nur rechts */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
         }
         .info-card {
             background-color: white;
@@ -133,8 +134,15 @@
 
          /* Responsive Anpassungen für kleinere Bildschirme */
         @media (max-width: 768px) {
-            #map-container, #info-container {
-                width: 100%;
+            #map-container {
+                flex-direction: column; /* Karte und Infos untereinander */
+            }
+            #map {
+                width: 100%; /* Karte nimmt volle Breite ein */
+            }
+            #info-container {
+                width: 100%; /* Infos nehmen volle Breite ein */
+                border-radius: 0 0 12px 12px; /* Abgerundete Ecken unten */
             }
             .info-card {
                 width: 95%;
@@ -252,6 +260,7 @@
         </select>
         <div id="map-container">
             <div id="map"></div>
+            <div id="info-container"></div>
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: blue;"></div>
@@ -271,8 +280,6 @@
                 </div>
             </div>
         </div>
-        <div id="info-container">
-            </div>
     </div>
 
     <script>
